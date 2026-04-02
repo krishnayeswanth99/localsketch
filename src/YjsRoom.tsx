@@ -32,6 +32,7 @@ export function YjsRoom(roomName: string) {
 
         return () => {
             webrtc.destroy();
+            indexDB.destroy();
             doc.destroy();
             undoM.destroy();
         };
