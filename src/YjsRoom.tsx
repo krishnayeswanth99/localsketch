@@ -23,6 +23,9 @@ export function YjsRoom(roomName: string) {
         });
 
         webrtc.on('synced', () => setIsSynced(true));
+        indexDB.on('synced', () => {
+            console.log('Offline data synced from local browser storage!');
+        });
 
         const undoM = new Y.UndoManager(doc.getMap('strokes'));
         setUndoManager(undoM);

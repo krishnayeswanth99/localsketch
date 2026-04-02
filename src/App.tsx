@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { YjsRoom } from './YjsRoom';
 import Canvas from './components/Canvas';
 
