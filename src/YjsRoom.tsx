@@ -3,6 +3,8 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 import * as Y from "yjs";
 
+const signalingUrl = import.meta.env.VITE_SIGNALING_URL || 'ws://localhost:4444';
+
 export function YjsRoom(roomName: string) {
 
     const [isSynced, setIsSynced] = useState(false);
@@ -17,7 +19,7 @@ export function YjsRoom(roomName: string) {
 
         const webrtc = new WebrtcProvider(roomName, doc, {
             // signaling: ['ws://localhost:4444'],
-            signaling: ['wss://localsketch-signaling-server.onrender.com/']
+            signaling: [signalingUrl],
         });
 
         webrtc.on('synced', () => setIsSynced(true));
