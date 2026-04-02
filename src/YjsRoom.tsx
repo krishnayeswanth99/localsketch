@@ -1,0 +1,37 @@
+import { useEffect, useState } from "react";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { WebrtcProvider } from "y-webrtc";
+import * as Y from "yjs";
+
+export function YjsRoom(roomName: string) {
+
+    const [isSynced, setIsSynced] = useState(false);
+    const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
+    const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null);
+
+    useEffect(() => {
+        const doc = new Y.Doc();
+        setYdoc(doc);
+
+        const indexDB = new IndexeddbPersistence(roomName, doc);
+
+        const webrtc = new WebrtcProvider(roomName, doc, {
+            // signaling: ['ws://localhost:4444'],
+            signaling: ['wss://localsketch-signaling-server.onrender.com/']
+        });
+
+        webrtc.on('synced', () => setIsSynced(true));
+
+        const undoM = new Y.UndoManager(doc.getMap('strokes'));
+        setUndoManager(undoM);
+
+        return () => {
+            webrtc.destroy();
+            doc.destroy();
+            undoM.destroy();
+        };
+
+    }, [roomName]);
+
+    return { ydoc, isSynced, undoManager };
+}
