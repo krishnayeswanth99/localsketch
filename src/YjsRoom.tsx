@@ -21,6 +21,7 @@ export function YjsRoom(roomName: string) {
             // signaling: ['ws://localhost:4444'],
             signaling: [signalingUrl],
         });
+        console.log('Signaling URL:', signalingUrl);
 
         webrtc.on('synced', () => setIsSynced(true));
         indexDB.on('synced', () => {
