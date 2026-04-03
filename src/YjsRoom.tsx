@@ -20,6 +20,15 @@ export function YjsRoom(roomName: string) {
         const webrtc = new WebrtcProvider(roomName, doc, {
             // signaling: ['ws://localhost:4444'],
             signaling: [signalingUrl],
+            peerOpts: {
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            }
         });
         console.log('Signaling URL:', signalingUrl);
 
