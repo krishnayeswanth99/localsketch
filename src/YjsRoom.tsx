@@ -4,6 +4,8 @@ import { WebrtcProvider } from "y-webrtc";
 import * as Y from "yjs";
 
 const signalingUrl = import.meta.env.VITE_SIGNALING_URL || 'ws://localhost:4444';
+const turnUsername = import.meta.env.VITE_TURN_USERNAME || '';
+const turnPassword = import.meta.env.VITE_TURN_PASSWORD || '';
 
 export function YjsRoom(roomName: string) {
 
@@ -17,16 +19,31 @@ export function YjsRoom(roomName: string) {
 
         const indexDB = new IndexeddbPersistence(roomName, doc);
 
+        const iceServers: RTCIceServer[] = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+        ];
+
+        if (turnUsername && turnPassword) {
+            iceServers.push({
+                urls: 'turn:global.relay.metered.ca:80', // Make sure this matches your Metered dashboard URL
+                username: turnUsername,
+                credential: turnPassword
+            });
+            iceServers.push({
+                urls: 'turn:global.relay.metered.ca:443', // Port 443 is great for bypassing strict firewalls
+                username: turnUsername,
+                credential: turnPassword
+            });
+        }
+
         const webrtc = new WebrtcProvider(roomName, doc, {
             // signaling: ['ws://localhost:4444'],
             signaling: [signalingUrl],
             peerOpts: {
                 config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
+                    iceServers: iceServers
                 }
             }
         });
