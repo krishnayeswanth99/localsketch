@@ -210,6 +210,15 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
               yPoints.insert(i, [{ x: p.x, y: p.y, isBreak: true }]);
             }
           }
+          
+          // Clean up if stroke is mostly erased or empty
+          const remainingPoints = yPoints.toArray();
+          const nonBreakPoints = remainingPoints.filter(p => !p.isBreak);
+          
+          // Delete stroke if it has fewer than 2 drawable points
+          if (nonBreakPoints.length < 2) {
+            yStrokes.delete(id);
+          }
         }
       }
     });

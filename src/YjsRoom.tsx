@@ -12,12 +12,14 @@ export function YjsRoom(roomName: string) {
     const [isSynced, setIsSynced] = useState(false);
     const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
     const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null);
+    const [peerCount, setPeerCount] = useState(0);
 
     useEffect(() => {
         const doc = new Y.Doc();
         setYdoc(doc);
 
         const indexDB = new IndexeddbPersistence(roomName, doc);
+        let webrtc: WebrtcProvider | null = null;
 
         const iceServers: RTCIceServer[] = [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -27,38 +29,54 @@ export function YjsRoom(roomName: string) {
 
         if (turnUsername && turnPassword) {
             iceServers.push({
-                urls: 'turn:global.relay.metered.ca:80', // Make sure this matches your Metered dashboard URL
+                urls: 'turn:global.relay.metered.ca:80',
                 username: turnUsername,
                 credential: turnPassword
             });
             iceServers.push({
-                urls: 'turn:global.relay.metered.ca:443', // Port 443 is great for bypassing strict firewalls
+                urls: 'turn:global.relay.metered.ca:443',
                 username: turnUsername,
                 credential: turnPassword
             });
         }
 
-        const webrtc = new WebrtcProvider(roomName, doc, {
-            // signaling: ['ws://localhost:4444'],
-            signaling: [signalingUrl],
-            peerOpts: {
-                config: {
-                    iceServers: iceServers
+        // Wait for IndexedDB to load first, then connect to WebRTC
+        indexDB.once('synced', () => {
+            console.log('Local storage loaded. Connecting to peers...');
+            
+            webrtc = new WebrtcProvider(roomName, doc, {
+                signaling: [signalingUrl],
+                peerOpts: {
+                    config: {
+                        iceServers: iceServers
+                    }
                 }
-            }
-        });
-        console.log('Signaling URL:', signalingUrl);
+            });
 
-        webrtc.on('synced', () => setIsSynced(true));
-        indexDB.on('synced', () => {
-            console.log('Offline data synced from local browser storage!');
+            webrtc.on('synced', () => {
+                console.log('Synced with peers!');
+                const initialPeerCount = webrtc?.connected?.size || 0;
+                setPeerCount(initialPeerCount);
+                setIsSynced(true);
+            });
+
+            webrtc.on('peers', ({ added, removed }: { added: string[], removed: string[] }) => {
+                const currentPeerCount = webrtc?.connected?.size || 0;
+                console.log('Peers changed. Added:', added, 'Removed:', removed, 'Total peers:', currentPeerCount);
+                setPeerCount(currentPeerCount);
+                
+                // Trigger re-sync when new peers join to ensure they get latest state
+                if (added.length > 0) {
+                    console.log('New peer joined, syncing state...');
+                }
+            });
         });
 
         const undoM = new Y.UndoManager(doc.getMap('strokes'));
         setUndoManager(undoM);
 
         return () => {
-            webrtc.destroy();
+            if (webrtc) webrtc.destroy();
             indexDB.destroy();
             doc.destroy();
             undoM.destroy();
@@ -66,5 +84,5 @@ export function YjsRoom(roomName: string) {
 
     }, [roomName]);
 
-    return { ydoc, isSynced, undoManager };
+    return { ydoc, isSynced, undoManager, peerCount };
 }

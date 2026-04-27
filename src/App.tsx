@@ -4,8 +4,8 @@ import { YjsRoom } from './YjsRoom';
 import Canvas from './components/Canvas';
 
 function Room({ name }: { name: string }) {
-  // 1. Extract undoManager from the hook
-  const { ydoc, isSynced, undoManager } = YjsRoom(name);
+  // 1. Extract undoManager and peerCount from the hook
+  const { ydoc, isSynced, undoManager, peerCount } = YjsRoom(name);
 
   // 2. Wait until BOTH doc and undoManager are ready
   if (!ydoc || !undoManager) {
@@ -18,7 +18,7 @@ function Room({ name }: { name: string }) {
         <div>
           <h2 style={{ margin: 0 }}>Room: {name}</h2>
           <p style={{ color: isSynced ? 'green' : 'orange', margin: '5px 0' }}>
-            Network Status: {isSynced ? 'Connected to Peers' : 'Connecting/Offline...'}
+            Network Status: {isSynced ? `Connected (${peerCount} peer${peerCount !== 1 ? 's' : ''})` : 'Connecting/Offline...'}
           </p>
         </div>
       </div>
