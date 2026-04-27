@@ -53,15 +53,19 @@ export function YjsRoom(roomName: string) {
                 }
             });
 
+            let activePeers = new Set<string>();
+
             webrtc.on('synced', () => {
                 console.log('Synced with peers!');
-                const initialPeerCount = webrtc?.connected?.size || 0;
-                setPeerCount(initialPeerCount);
                 setIsSynced(true);
             });
 
             webrtc.on('peers', ({ added, removed }: { added: string[], removed: string[] }) => {
-                const currentPeerCount = webrtc?.connected?.size || 0;
+                // Update the set of active peers
+                added.forEach(peer => activePeers.add(peer));
+                removed.forEach(peer => activePeers.delete(peer));
+                
+                const currentPeerCount = activePeers.size;
                 console.log('Peers changed. Added:', added, 'Removed:', removed, 'Total peers:', currentPeerCount);
                 setPeerCount(currentPeerCount);
                 
