@@ -440,7 +440,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
     completingTextRef.current = true;
     const stroke = yStrokes.get(editingText.id);
     if (stroke && !editingText.value.trim()) {
-      console.log('🗑️ Deleting empty text');
+      console.log('🗑️ Deleting empty text box (no text entered)');
       yStrokes.delete(editingText.id);
     } else {
       console.log('💾 Saving text:', editingText.value);
@@ -506,10 +506,11 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
         {editingText && (
           <input
             autoFocus
-            value={editingText.value}
+            value={editingTextBlur
             onChange={handleTextChange}
             onBlur={handleTextComplete}
             onKeyDown={(e) => { if (e.key === 'Enter') handleTextComplete(); }}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{
               position: 'absolute', left: editingText.x + 2, top: editingText.y + 2, 
               font: '20px sans-serif', background: 'transparent', border: '1px dashed #007bff', 
