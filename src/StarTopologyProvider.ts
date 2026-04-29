@@ -20,7 +20,7 @@ const messageSync = 0;
 const messageAwareness = 1;
 
 interface SignalingMessage {
-  type: 'announce' | 'signal' | 'leave';
+  type: 'announce' | 'signal' | 'leave' | 'heartbeat';
   from: string;
   to?: string;
   signal?: any;
@@ -49,6 +49,12 @@ export class StarTopologyProvider {
   private synced: boolean = false;
   
   private eventHandlers: Map<string, Set<Function>> = new Map();
+  
+  // Heartbeat mechanism to detect dead leaders
+  private lastHeartbeat: Map<string, number> = new Map();
+  private heartbeatInterval: number | null = null;
+  private readonly HEARTBEAT_INTERVAL = 3000; // Send heartbeat every 3s
+  private readonly HEARTBEAT_TIMEOUT = 10000; // Declare dead after 10s
 
   constructor(
     roomName: string,
@@ -70,6 +76,7 @@ export class StarTopologyProvider {
     
     this.connectToSignaling();
     this.setupDocumentListeners();
+    this.startHeartbeat();
   }
 
   private generatePeerId(): string {
@@ -128,6 +135,12 @@ export class StarTopologyProvider {
       case 'leave':
         if (message.from !== this.peerId) {
           this.handlePeerLeave(message.from);
+        }
+        break;
+        
+      case 'heartbeat':
+        if (message.from !== this.peerId) {
+          this.lastHeartbeat.set(message.from, Date.now());
         }
         break;
     }
@@ -476,6 +489,45 @@ export class StarTopologyProvider {
     });
   }
 
+  private startHeartbeat() {
+    // Send heartbeat every 3 seconds
+    this.heartbeatInterval = window.setInterval(() => {
+      this.sendSignaling({
+        type: 'heartbeat',
+        from: this.peerId,
+        room: this.roomName
+      });
+      
+      // Check for dead peers (including leader)
+      this.checkForDeadPeers();
+    }, this.HEARTBEAT_INTERVAL);
+  }
+
+  private checkForDeadPeers() {
+    const now = Date.now();
+    const deadPeers: string[] = [];
+    
+    this.knownPeerIds.forEach(peerId => {
+      const lastSeen = this.lastHeartbeat.get(peerId);
+      
+      // If we haven't seen a heartbeat in 10 seconds, consider them dead
+      if (lastSeen && now - lastSeen > this.HEARTBEAT_TIMEOUT) {
+        console.log(`[StarTopology] Peer ${peerId} timed out (no heartbeat for ${now - lastSeen}ms)`);
+        deadPeers.push(peerId);
+      } else if (!lastSeen && this.knownPeerIds.has(peerId)) {
+        // First time seeing this peer, record current time
+        this.lastHeartbeat.set(peerId, now);
+      }
+    });
+    
+    // Remove dead peers
+    deadPeers.forEach(peerId => {
+      console.log(`[StarTopology] Removing dead peer ${peerId}`);
+      this.handlePeerLeave(peerId);
+      this.lastHeartbeat.delete(peerId);
+    });
+  }
+
   // Event emitter methods
   on(event: string, handler: Function) {
     if (!this.eventHandlers.has(event)) {
@@ -516,6 +568,12 @@ export class StarTopologyProvider {
   }
 
   destroy() {
+    // Stop heartbeat
+    if (this.heartbeatInterval !== null) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    
     // Announce we're leaving
     this.sendSignaling({
       type: 'leave',
