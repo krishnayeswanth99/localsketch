@@ -226,7 +226,9 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    console.log('🖱️ startDrawing called, currentTool:', currentTool, 'editingText:', editingText);
     if (editingText) { 
+      console.log('📝 Completing current text before processing click');
       handleTextComplete(); 
       return;
     }
@@ -282,12 +284,14 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
 
     // Text & Creation logic
     if (currentTool === 'text') {
+      console.log('✏️ Text tool clicked at:', point);
       // Check if we clicked on an existing text element to edit it
       const keys = Array.from(yStrokes.keys());
       for (let i = keys.length - 1; i >= 0; i--) {
         const id = keys[i];
         const stroke = yStrokes.get(id);
         if (stroke && stroke.get('type') === 'text' && isPointInShape(point, stroke)) {
+          console.log('📄 Clicked on existing text, editing it');
           const points = (stroke.get('points') as Y.Array<Point>).toArray();
           const offsetX = (stroke.get('offsetX') as number) || 0;
           const offsetY = (stroke.get('offsetY') as number) || 0;
@@ -304,6 +308,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
       }
       
       // Create new text element
+      console.log('➕ Creating new text element at:', point);
       const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       doc.transact(() => {
         const yStroke = new Y.Map();
@@ -317,6 +322,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
         yStroke.set('textValue', '');
         yStrokes.set(id, yStroke);
       });
+      console.log('📝 Setting editingText state:', { id, x: point.x, y: point.y });
       setEditingText({ id, x: point.x, y: point.y, value: '' });
       return;
     }
@@ -422,16 +428,23 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingText) return;
     const newValue = e.target.value;
+    console.log('⌨️ Text changed:', newValue);
     setEditingText({ ...editingText, value: newValue });
     const stroke = yStrokes.get(editingText.id);
     if (stroke) stroke.set('textValue', newValue);
   };
 
   const handleTextComplete = () => {
+    console.log('✅ handleTextComplete called, editingText:', editingText, 'completing:', completingTextRef.current);
     if (!editingText || completingTextRef.current) return;
     completingTextRef.current = true;
     const stroke = yStrokes.get(editingText.id);
-    if (stroke && !editingText.value.trim()) yStrokes.delete(editingText.id);
+    if (stroke && !editingText.value.trim()) {
+      console.log('🗑️ Deleting empty text');
+      yStrokes.delete(editingText.id);
+    } else {
+      console.log('💾 Saving text:', editingText.value);
+    }
     setEditingText(null);
     setTimeout(() => { completingTextRef.current = false; }, 0);
   };
