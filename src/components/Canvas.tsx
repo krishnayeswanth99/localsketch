@@ -506,7 +506,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
         {editingText && (
           <input
             autoFocus
-            value={editingTextBlur
+            value={editingText.value}
             onChange={handleTextChange}
             onBlur={handleTextComplete}
             onKeyDown={(e) => { if (e.key === 'Enter') handleTextComplete(); }}
