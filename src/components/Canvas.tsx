@@ -225,7 +225,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (editingText) { handleTextComplete(); return; }
+    if (editingText) { handleTextComplete(); }
     const point = getPoint(e);
     if (!point) return;
 
@@ -278,7 +278,28 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
 
     // Text & Creation logic
     if (currentTool === 'text') {
-      // Omitted text-editing hit detection to save space, assuming previous block behavior
+      // Check if we clicked on an existing text element to edit it
+      const keys = Array.from(yStrokes.keys());
+      for (let i = keys.length - 1; i >= 0; i--) {
+        const id = keys[i];
+        const stroke = yStrokes.get(id);
+        if (stroke && stroke.get('type') === 'text' && isPointInShape(point, stroke)) {
+          const points = (stroke.get('points') as Y.Array<Point>).toArray();
+          const offsetX = (stroke.get('offsetX') as number) || 0;
+          const offsetY = (stroke.get('offsetY') as number) || 0;
+          const scaleX = (stroke.get('scaleX') as number) || 1;
+          const scaleY = (stroke.get('scaleY') as number) || 1;
+          
+          const textX = points[0].x * scaleX + offsetX;
+          const textY = points[0].y * scaleY + offsetY;
+          const currentValue = stroke.get('textValue') as string || '';
+          
+          setEditingText({ id, x: textX, y: textY, value: currentValue });
+          return;
+        }
+      }
+      
+      // Create new text element
       const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       doc.transact(() => {
         const yStroke = new Y.Map();
