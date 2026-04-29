@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
-import { WebrtcProvider } from "y-webrtc";
+import { StarTopologyProvider } from "./StarTopologyProvider";
 import * as Y from "yjs";
 
 const signalingUrl = import.meta.env.VITE_SIGNALING_URL || 'ws://localhost:4444';
@@ -13,13 +13,15 @@ export function YjsRoom(roomName: string) {
     const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
     const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null);
     const [peerCount, setPeerCount] = useState(0);
+    const [isLeader, setIsLeader] = useState(false);
+    const [leaderId, setLeaderId] = useState<string | null>(null);
 
     useEffect(() => {
         const doc = new Y.Doc();
         setYdoc(doc);
 
         const indexDB = new IndexeddbPersistence(roomName, doc);
-        let webrtc: WebrtcProvider | null = null;
+        let starProvider: StarTopologyProvider | null = null;
 
         const iceServers: RTCIceServer[] = [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -40,11 +42,11 @@ export function YjsRoom(roomName: string) {
             });
         }
 
-        // Wait for IndexedDB to load first, then connect to WebRTC
+        // Wait for IndexedDB to load first, then connect via Star Topology
         indexDB.once('synced', () => {
-            console.log('Local storage loaded. Connecting to peers...');
+            console.log('Local storage loaded. Connecting to peers with star topology...');
             
-            webrtc = new WebrtcProvider(roomName, doc, {
+            starProvider = new StarTopologyProvider(roomName, doc, {
                 signaling: [signalingUrl],
                 peerOpts: {
                     config: {
@@ -53,26 +55,25 @@ export function YjsRoom(roomName: string) {
                 }
             });
 
-            let activePeers = new Set<string>();
-
-            webrtc.on('synced', () => {
+            starProvider.on('synced', () => {
                 console.log('Synced with peers!');
                 setIsSynced(true);
             });
 
-            webrtc.on('peers', ({ added, removed }: { added: string[], removed: string[] }) => {
-                // Update the set of active peers
-                added.forEach(peer => activePeers.add(peer));
-                removed.forEach(peer => activePeers.delete(peer));
-                
-                const currentPeerCount = activePeers.size;
-                console.log('Peers changed. Added:', added, 'Removed:', removed, 'Total peers:', currentPeerCount);
+            starProvider.on('peers', ({ added }: { added: string[] }) => {
+                const currentPeerCount = starProvider?.connectedPeers.length || 0;
+                console.log('Peers changed. Connected peers:', currentPeerCount);
                 setPeerCount(currentPeerCount);
                 
-                // Trigger re-sync when new peers join to ensure they get latest state
                 if (added.length > 0) {
                     console.log('New peer joined, syncing state...');
                 }
+            });
+
+            starProvider.on('leaderChange', ({ isLeader: leader, leaderId: id }: { isLeader: boolean, leaderId: string }) => {
+                console.log(`Leader change: ${leader ? 'This peer is now the leader' : 'This peer is a follower'} (Leader ID: ${id})`);
+                setIsLeader(leader);
+                setLeaderId(id);
             });
         });
 
@@ -80,7 +81,7 @@ export function YjsRoom(roomName: string) {
         setUndoManager(undoM);
 
         return () => {
-            if (webrtc) webrtc.destroy();
+            if (starProvider) starProvider.destroy();
             indexDB.destroy();
             doc.destroy();
             undoM.destroy();
@@ -88,5 +89,5 @@ export function YjsRoom(roomName: string) {
 
     }, [roomName]);
 
-    return { ydoc, isSynced, undoManager, peerCount };
+    return { ydoc, isSynced, undoManager, peerCount, isLeader, leaderId };
 }

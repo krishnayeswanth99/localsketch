@@ -463,7 +463,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
           onMouseOut={stopDrawing}
         />
 
-        {editingText && (
+        {editingText && canvasRef.current && (
           <input
             autoFocus
             value={editingText.value}
@@ -471,7 +471,9 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
             onBlur={handleTextComplete}
             onKeyDown={(e) => { if (e.key === 'Enter') handleTextComplete(); }}
             style={{
-              position: 'absolute', left: editingText.x, top: editingText.y - 2, 
+              position: 'absolute', 
+              left: canvasRef.current.offsetLeft + editingText.x, 
+              top: canvasRef.current.offsetTop + editingText.y - 2, 
               font: '20px sans-serif', background: 'transparent', border: '1px dashed #007bff', 
               outline: 'none', padding: 0, margin: 0, color: '#000', 
               minWidth: '50px', width: `${Math.max(50, editingText.value.length * 12 + 20)}px`

@@ -4,8 +4,8 @@ import { YjsRoom } from './YjsRoom';
 import Canvas from './components/Canvas';
 
 function Room({ name }: { name: string }) {
-  // 1. Extract undoManager and peerCount from the hook
-  const { ydoc, isSynced, undoManager, peerCount } = YjsRoom(name);
+  // 1. Extract undoManager, peerCount, isLeader, and leaderId from the hook
+  const { ydoc, isSynced, undoManager, peerCount, isLeader, leaderId } = YjsRoom(name);
 
   // 2. Wait until BOTH doc and undoManager are ready
   if (!ydoc || !undoManager) {
@@ -19,6 +19,9 @@ function Room({ name }: { name: string }) {
           <h2 style={{ margin: 0 }}>Room: {name}</h2>
           <p style={{ color: isSynced ? 'green' : 'orange', margin: '5px 0' }}>
             Network Status: {isSynced ? `Connected (${peerCount} peer${peerCount !== 1 ? 's' : ''})` : 'Connecting/Offline...'}
+          </p>
+          <p style={{ color: isLeader ? '#ff6b00' : '#0066cc', margin: '5px 0', fontSize: '14px' }}>
+            Topology: Star (O(n) connections) • {isLeader ? '⭐ Leader (Hub)' : `Follower → ${leaderId?.substring(0, 8)}...`}
           </p>
         </div>
       </div>
