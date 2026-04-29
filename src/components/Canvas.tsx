@@ -231,7 +231,10 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
     console.log('🖱️ startDrawing called, currentTool:', currentTool, 'editingText:', editingText);
     if (editingText) { 
       console.log('📝 Completing current text before processing click');
-      handleTextComplete(); 
+      // Force completion by marking as ready
+      isInputReadyRef.current = true;
+      handleTextComplete();
+      // Don't process the new click yet - let the state clear first
       return;
     }
     const point = getPoint(e);
@@ -443,7 +446,14 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
 
   const handleTextComplete = () => {
     console.log('✅ handleTextComplete called, editingText:', editingText, 'completing:', completingTextRef.current, 'inputReady:', isInputReadyRef.current);
-    if (!editingText || completingTextRef.current || !isInputReadyRef.current) return;
+    if (!editingText || completingTextRef.current) return;
+    
+    // Only proceed if input is ready OR if we're force-completing (e.g., switching tools)
+    if (!isInputReadyRef.current) {
+      console.log('⚠️ Input not ready yet, skipping blur');
+      return;
+    }
+    
     completingTextRef.current = true;
     const stroke = yStrokes.get(editingText.id);
     if (stroke && !editingText.value.trim()) {
