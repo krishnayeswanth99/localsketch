@@ -467,6 +467,14 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
     setTimeout(() => { completingTextRef.current = false; }, 0);
   };
   
+  const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    console.log('👋 Blur event fired, relatedTarget:', e.relatedTarget);
+    // Only complete if the input actually had focus (not a spurious blur event)
+    if (document.activeElement !== textInputRef.current) {
+      handleTextComplete();
+    }
+  };
+  
   // Effect to focus and mark input as ready when it mounts
   useEffect(() => {
     if (editingText && textInputRef.current) {
@@ -536,10 +544,10 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
 
         {editingText && (
           <input
-            autoFocus
+            ref={textInputRef}
             value={editingText.value}
             onChange={handleTextChange}
-            onBlur={handleTextComplete}
+            onBlur={handleTextBlur}
             onKeyDown={(e) => { if (e.key === 'Enter') handleTextComplete(); }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
