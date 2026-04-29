@@ -431,6 +431,11 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
     if (!editingText) return;
     const newValue = e.target.value;
     console.log('⌨️ Text changed:', newValue);
+    // Mark input as ready once user starts typing
+    if (!isInputReadyRef.current) {
+      console.log('✅ Input marked as ready (user is typing)');
+      isInputReadyRef.current = true;
+    }
     setEditingText({ ...editingText, value: newValue });
     const stroke = yStrokes.get(editingText.id);
     if (stroke) stroke.set('textValue', newValue);
@@ -457,11 +462,11 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
     if (editingText && textInputRef.current) {
       console.log('🎯 Focusing text input');
       textInputRef.current.focus();
-      // Mark as ready after focus
-      setTimeout(() => {
+      // Mark as ready immediately after focus
+      requestAnimationFrame(() => {
         isInputReadyRef.current = true;
         console.log('✅ Input is ready for blur events');
-      }, 50);
+      });
     }
   }, [editingText]);
 
