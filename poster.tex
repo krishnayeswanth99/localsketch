@@ -1,0 +1,293 @@
+% Overleaf beamerposter template for academic posters
+\documentclass[final,t]{beamer}
+\mode<presentation>
+{
+  \usetheme{Berlin}
+}
+\usepackage[orientation=landscape,size=a0,scale=1.3]{beamerposter}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+\usepackage{listings}
+\usepackage{ragged2e}
+
+% Color scheme
+\definecolor{primary}{RGB}{0,123,255}
+\definecolor{secondary}{RGB}{108,117,125}
+\definecolor{success}{RGB}{40,167,69}
+\definecolor{warning}{RGB}{255,193,7}
+\definecolor{darkblue}{RGB}{0,86,179}
+
+\setbeamercolor{block title}{fg=white,bg=primary}
+\setbeamercolor{block body}{fg=black,bg=white}
+\setbeamercolor{structure}{fg=primary}
+
+\title{\LARGE LocalSketch: Peer-to-Peer Collaborative Whiteboard}
+% \author{Krishna}
+% \institute{DS Final Project --- April 2026}
+
+\begin{document}
+\begin{frame}[t]
+\begin{columns}[t]
+
+%%%%%%%% COLUMN 1 %%%%%%%%
+\begin{column}{.30\linewidth}
+
+\begin{block}{What?}
+\textbf{LocalSketch} is a collaborative whiteboard application that works entirely in the browser using peer-to-peer connections. \textbf{No server needed!}
+
+\vspace{0.5cm}
+\textbf{Key Features:}
+\begin{itemize}
+    \item Drawing tools: Freehand, shapes, text
+    \item Real-time collaboration
+    \item Offline-first with IndexedDB
+    \item Room-based sessions
+    \item Undo/Redo support
+\end{itemize}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{block}{Why?}
+\textbf{Privacy \& Control}\\
+Traditional tools (Google Docs, Figma, Miro) send all your data through their servers. \textbf{LocalSketch keeps your data on your device} - it only syncs directly with peers you choose.
+
+\vspace{0.5cm}
+\textbf{Resilient to Network Issues}\\
+Works offline and automatically syncs when connection returns. Perfect for unreliable networks!
+
+\vspace{0.5cm}
+\textbf{Learning Experience}\\
+Fun exploration of:
+\begin{itemize}
+    \item \textbf{CRDTs} (Conflict-free Replicated Data Types)
+    \item \textbf{WebRTC} for peer-to-peer networking
+    \item \textbf{Local-first software} principles
+\end{itemize}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{block}{How? Architecture}
+\begin{center}
+\begin{tikzpicture}[node distance=2cm,
+    box/.style={rectangle, draw=primary, fill=blue!10, text width=4.55cm, align=center, rounded corners, minimum height=1.3cm, thick}]
+    
+    \node[box] (react) {React + TypeScript\\UI Layer};
+    \node[box, below=1.5cm of react] (yjs) {Yjs Document\\CRDT State};
+    \node[box, below left=1.2cm and 0.5cm of yjs] (indexdb) {IndexedDB\\Persistence};
+    \node[box, below right=1.2cm and 0.5cm of yjs] (webrtc) {WebRTC\\P2P Sync};
+    
+    \draw[->, thick, primary] (react) -- (yjs);
+    \draw[<->, thick, primary] (yjs) -- (indexdb);
+    \draw[<->, thick, primary] (yjs) -- (webrtc);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.5cm}
+\textbf{Key Technical Decisions}
+
+\textbf{1. Yjs for State Management}
+\begin{itemize}
+    \item Y.Map stores all strokes with unique IDs
+    \item Y.Array for stroke points
+    \item Built-in conflict resolution!
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{2. Transform-based Editing}
+
+Each stroke stores: type, points, color, offsetX/Y, scaleX/Y for non-destructive transformations!
+
+\vspace{0.3cm}
+\textbf{3. WebRTC with STUN/TURN}
+\begin{itemize}
+    \item Direct P2P when possible
+    \item TURN relay fallback
+    \item Signaling server for handshake only
+\end{itemize}
+\end{block}
+
+\end{column}
+
+%%%%%%%% COLUMN 2 %%%%%%%%
+\begin{column}{.38\linewidth}
+
+\begin{block}{\LARGE Main Finding}
+\begin{center}
+\vspace{1cm}
+{\Huge \textbf{Real-time collaboration}}\\[0.5cm]
+{\Huge \textbf{WITHOUT SERVERS!}}
+
+\vspace{1cm}
+{\LARGE LocalSketch uses \textbf{WebRTC + Yjs} to enable}\\
+{\LARGE peer-to-peer collaborative drawing that works}\\
+{\LARGE \textbf{offline} and syncs instantly when reconnected.}
+
+\vspace{1cm}
+\colorbox{primary!20}{
+\parbox{0.9\linewidth}{
+\centering
+\Large
+\textbf{Local-first architecture}\\[0.3cm]
+Your data stays on your device\\[0.5cm]
+\textbf{Peer-to-Peer networking}\\[0.3cm]
+Direct connections, no middleman\\[0.5cm]
+\textbf{Works offline}\\[0.3cm]
+Syncs when you reconnect\\[0.5cm]
+\textbf{CRDTs handle conflicts}\\[0.3cm]
+Automatic merge, always
+}
+}
+\vspace{1cm}
+\end{center}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{block}{Challenges \& Solutions}
+\colorbox{blue!10}{
+\parbox{0.95\linewidth}{
+\textbf{Problem:} Canvas state not syncing when new peer joins\\
+\textbf{Solution:} Wait for IndexedDB to load before WebRTC
+
+\vspace{0.2cm}
+\texttt{\small
+indexDB.once('synced', () => \{\\
+~~webrtc = new WebrtcProvider(...)\}
+);
+}
+}
+}
+
+\vspace{0.5cm}
+\colorbox{blue!10}{
+\parbox{0.95\linewidth}{
+\textbf{Problem:} Resizing distorted stroke thickness\\
+\textbf{Solution:} Scale-compensated line width
+
+\vspace{0.2cm}
+\texttt{\small
+const maxScale = Math.max(\\
+~~Math.abs(scaleX), Math.abs(scaleY)\\);\\
+ctx.lineWidth = 4 / maxScale;
+}
+}
+}
+
+\vspace{0.5cm}
+\colorbox{blue!10}{
+\parbox{0.95\linewidth}{
+\textbf{Problem:} Erase tool needs to account for transforms\\
+\textbf{Solution:} Reverse-transform mouse coordinates before hit-testing
+}
+}
+\end{block}
+
+\end{column}
+
+%%%%%%%% COLUMN 3 %%%%%%%%
+\begin{column}{.30\linewidth}
+
+\begin{block}{What Works?}
+\textbf{Core Functionality}
+\begin{itemize}
+    \item Multiple drawing tools with color selection
+    \item Select, move, and resize any shape
+    \item Undo/Redo (Y.UndoManager)
+    \item Real-time multi-user collaboration
+    \item Offline persistence and sync
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Network Resilience}
+\begin{itemize}
+    \item Works completely offline
+    \item Auto-reconnects when network returns
+    \item Peer count display shows connection status
+    \item Data persists across sessions
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Demo Stats (3 users)}
+\begin{itemize}
+    \item \textbf{Sync latency:} 50-200ms (local network)
+    \item \textbf{Conflict resolution:} Automatic (CRDT magic!)
+    \item \textbf{Data size:} $\sim$100 strokes = $\sim$50KB in IndexedDB
+    \item \textbf{Merge conflicts:} 0
+\end{itemize}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{block}{Limitations \& Future Work}
+\textbf{Current Limitations}
+\begin{itemize}
+    \item \textbf{No persistent server:} Rooms only exist while peers online
+    \item \textbf{NAT traversal:} May fail on restricted networks without TURN
+    \item \textbf{No authentication:} Anyone with room name can join
+    \item \textbf{Canvas size:} Fixed dimensions (not infinite)
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{What I'd Do Next}
+\begin{itemize}
+    \item \textbf{Infinite canvas:} Pan/zoom like Miro
+    \item \textbf{More tools:} Pen pressure, layers, images
+    \item \textbf{Hybrid sync:} Optional server for persistence
+    \item \textbf{Export:} Save as PNG/SVG
+    \item \textbf{Performance:} Optimize for 1000+ strokes
+\end{itemize}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{block}{Key Takeaways}
+\textbf{What I Learned}
+\begin{enumerate}
+    \item \textbf{CRDTs are powerful:} Yjs handles all merge complexity
+    \item \textbf{WebRTC is tricky:} NAT traversal needs careful setup
+    \item \textbf{Local-first is viable:} Great UX for collaborative apps
+    \item \textbf{Transform-based editing:} Cleaner than re-calculating geometry
+\end{enumerate}
+
+\vspace{0.3cm}
+\textbf{Would I Recommend This Approach?}
+
+\colorbox{success!20}{
+\parbox{0.95\linewidth}{
+\textbf{YES, if:}
+\begin{itemize}
+    \item Privacy is important
+    \item Offline functionality required
+    \item Small groups (< 20 users)
+\end{itemize}
+}
+}
+
+\vspace{0.3cm}
+\colorbox{warning!30}{
+\parbox{0.95\linewidth}{
+\textbf{NO, if:}
+\begin{itemize}
+    \item Need persistent storage
+    \item Large-scale collaboration
+    \item Strict access control required
+\end{itemize}
+}
+}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{block}{Tech Stack}
+React 19 • TypeScript • Vite • Yjs 13.6 • y-webrtc • y-indexeddb • WebRTC • IndexedDB
+\end{block}
+
+\end{column}
+
+\end{columns}
+\end{frame}
+\end{document}
