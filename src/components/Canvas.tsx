@@ -11,6 +11,8 @@ interface CanvasProps {
 export default function Canvas({ doc, undoManager }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const completingTextRef = useRef(false);
+  const textInputRef = useRef<HTMLInputElement>(null);
+  const isInputReadyRef = useRef(false);
   
   const [currentTool, setCurrentTool] = useState<Tool>('freehand');
   const [isDrawing, setIsDrawing] = useState(false);
@@ -435,8 +437,8 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const handleTextComplete = () => {
-    console.log('✅ handleTextComplete called, editingText:', editingText, 'completing:', completingTextRef.current);
-    if (!editingText || completingTextRef.current) return;
+    console.log('✅ handleTextComplete called, editingText:', editingText, 'completing:', completingTextRef.current, 'inputReady:', isInputReadyRef.current);
+    if (!editingText || completingTextRef.current || !isInputReadyRef.current) return;
     completingTextRef.current = true;
     const stroke = yStrokes.get(editingText.id);
     if (stroke && !editingText.value.trim()) {
@@ -446,8 +448,22 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
       console.log('💾 Saving text:', editingText.value);
     }
     setEditingText(null);
+    isInputReadyRef.current = false;
     setTimeout(() => { completingTextRef.current = false; }, 0);
   };
+  
+  // Effect to focus and mark input as ready when it mounts
+  useEffect(() => {
+    if (editingText && textInputRef.current) {
+      console.log('🎯 Focusing text input');
+      textInputRef.current.focus();
+      // Mark as ready after focus
+      setTimeout(() => {
+        isInputReadyRef.current = true;
+        console.log('✅ Input is ready for blur events');
+      }, 50);
+    }
+  }, [editingText]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', alignItems: 'flex-start' }}>
