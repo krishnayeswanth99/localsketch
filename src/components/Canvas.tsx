@@ -10,6 +10,7 @@ interface CanvasProps {
 
 export default function Canvas({ doc, undoManager }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const completingTextRef = useRef(false);
   
   const [currentTool, setCurrentTool] = useState<Tool>('freehand');
   const [isDrawing, setIsDrawing] = useState(false);
@@ -225,7 +226,10 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (editingText) { handleTextComplete(); }
+    if (editingText) { 
+      handleTextComplete(); 
+      return;
+    }
     const point = getPoint(e);
     if (!point) return;
 
@@ -424,10 +428,12 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const handleTextComplete = () => {
-    if (!editingText) return;
+    if (!editingText || completingTextRef.current) return;
+    completingTextRef.current = true;
     const stroke = yStrokes.get(editingText.id);
     if (stroke && !editingText.value.trim()) yStrokes.delete(editingText.id);
     setEditingText(null);
+    setTimeout(() => { completingTextRef.current = false; }, 0);
   };
 
   return (
@@ -492,7 +498,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
             onBlur={handleTextComplete}
             onKeyDown={(e) => { if (e.key === 'Enter') handleTextComplete(); }}
             style={{
-              position: 'absolute', left: editingText.x, top: editingText.y - 2, 
+              position: 'absolute', left: editingText.x + 2, top: editingText.y + 2, 
               font: '20px sans-serif', background: 'transparent', border: '1px dashed #007bff', 
               outline: 'none', padding: 0, margin: 0, color: '#000', 
               minWidth: '50px', width: `${Math.max(50, editingText.value.length * 12 + 20)}px`
