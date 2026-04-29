@@ -228,9 +228,9 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    console.log('🖱️ startDrawing called, currentTool:', currentTool, 'editingText:', editingText);
+    console.log('startDrawing called, currentTool:', currentTool, 'editingText:', editingText);
     if (editingText) { 
-      console.log('📝 Completing current text before processing click');
+      console.log('Completing current text before processing click');
       // Force completion by marking as ready
       isInputReadyRef.current = true;
       handleTextComplete();
@@ -289,14 +289,14 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
 
     // Text & Creation logic
     if (currentTool === 'text') {
-      console.log('✏️ Text tool clicked at:', point);
+      console.log('Text tool clicked at:', point);
       // Check if we clicked on an existing text element to edit it
       const keys = Array.from(yStrokes.keys());
       for (let i = keys.length - 1; i >= 0; i--) {
         const id = keys[i];
         const stroke = yStrokes.get(id);
         if (stroke && stroke.get('type') === 'text' && isPointInShape(point, stroke)) {
-          console.log('📄 Clicked on existing text, editing it');
+          console.log('Clicked on existing text, editing it');
           const points = (stroke.get('points') as Y.Array<Point>).toArray();
           const offsetX = (stroke.get('offsetX') as number) || 0;
           const offsetY = (stroke.get('offsetY') as number) || 0;
@@ -313,7 +313,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
       }
       
       // Create new text element
-      console.log('➕ Creating new text element at:', point);
+      console.log('Creating new text element at:', point);
       const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       doc.transact(() => {
         const yStroke = new Y.Map();
@@ -327,7 +327,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
         yStroke.set('textValue', '');
         yStrokes.set(id, yStroke);
       });
-      console.log('📝 Setting editingText state:', { id, x: point.x, y: point.y });
+      console.log('Setting editingText state:', { id, x: point.x, y: point.y });
       setEditingText({ id, x: point.x, y: point.y, value: '' });
       return;
     }
@@ -433,10 +433,10 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingText) return;
     const newValue = e.target.value;
-    console.log('⌨️ Text changed:', newValue);
+    console.log('Text changed:', newValue);
     // Mark input as ready once user starts typing
     if (!isInputReadyRef.current) {
-      console.log('✅ Input marked as ready (user is typing)');
+      console.log('Input marked as ready (user is typing)');
       isInputReadyRef.current = true;
     }
     setEditingText({ ...editingText, value: newValue });
@@ -445,22 +445,22 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
 
   const handleTextComplete = () => {
-    console.log('✅ handleTextComplete called, editingText:', editingText, 'completing:', completingTextRef.current, 'inputReady:', isInputReadyRef.current);
+    console.log('handleTextComplete called, editingText:', editingText, 'completing:', completingTextRef.current, 'inputReady:', isInputReadyRef.current);
     if (!editingText || completingTextRef.current) return;
     
     // Only proceed if input is ready OR if we're force-completing (e.g., switching tools)
     if (!isInputReadyRef.current) {
-      console.log('⚠️ Input not ready yet, skipping blur');
+      console.log('Input not ready yet, skipping blur');
       return;
     }
     
     completingTextRef.current = true;
     const stroke = yStrokes.get(editingText.id);
     if (stroke && !editingText.value.trim()) {
-      console.log('🗑️ Deleting empty text box (no text entered)');
+      console.log('Deleting empty text box (no text entered)');
       yStrokes.delete(editingText.id);
     } else {
-      console.log('💾 Saving text:', editingText.value);
+      console.log('Saving text:', editingText.value);
     }
     setEditingText(null);
     isInputReadyRef.current = false;
@@ -468,7 +468,7 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   };
   
   const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    console.log('👋 Blur event fired, relatedTarget:', e.relatedTarget);
+    console.log('Blur event fired, relatedTarget:', e.relatedTarget);
     // Only complete if the input actually had focus (not a spurious blur event)
     if (document.activeElement !== textInputRef.current) {
       handleTextComplete();
@@ -478,12 +478,12 @@ export default function Canvas({ doc, undoManager }: CanvasProps) {
   // Effect to focus and mark input as ready when it mounts
   useEffect(() => {
     if (editingText && textInputRef.current) {
-      console.log('🎯 Focusing text input');
+      console.log('Focusing text input');
       textInputRef.current.focus();
       // Mark as ready immediately after focus
       requestAnimationFrame(() => {
         isInputReadyRef.current = true;
-        console.log('✅ Input is ready for blur events');
+        console.log('Input is ready for blur events');
       });
     }
   }, [editingText]);
