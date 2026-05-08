@@ -55,9 +55,18 @@ export function YjsRoom(roomName: string) {
 
             let activePeers = new Set<string>();
 
-            webrtc.on('synced', () => {
-                console.log('Synced with peers!');
-                setIsSynced(true);
+            // Handle sync state changes
+            webrtc.on('synced', ({ synced }: { synced: boolean }) => {
+                console.log('Sync state changed:', synced);
+                setIsSynced(synced);
+            });
+
+            // Handle connection status changes
+            webrtc.on('status', ({ connected }: { connected: boolean }) => {
+                console.log('WebRTC connection status:', connected ? 'connected' : 'disconnected');
+                if (!connected) {
+                    setIsSynced(false);
+                }
             });
 
             webrtc.on('peers', ({ added, removed }: { added: string[], removed: string[] }) => {
@@ -69,9 +78,13 @@ export function YjsRoom(roomName: string) {
                 console.log('Peers changed. Added:', added, 'Removed:', removed, 'Total peers:', currentPeerCount);
                 setPeerCount(currentPeerCount);
                 
-                // Trigger re-sync when new peers join to ensure they get latest state
-                if (added.length > 0) {
-                    console.log('New peer joined, syncing state...');
+                // Update sync status based on peer count
+                if (currentPeerCount === 0) {
+                    console.log('No peers connected, marking as not synced');
+                    setIsSynced(false);
+                } else if (added.length > 0) {
+                    console.log('New peer joined, re-syncing state...');
+                    // WebRTC provider will automatically sync with new peers
                 }
             });
         });
